@@ -1,0 +1,6 @@
+/target/
+*.log
+netwatch-report*.json
+netwatch-report*.csv
+session.json
+alerts.csv

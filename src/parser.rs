@@ -129,6 +129,7 @@ impl PacketEvent {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LinkType {
     Ethernet,
+    Null,
     RawIp,
     LinuxSll,
     Unsupported(u32),
@@ -137,6 +138,7 @@ pub enum LinkType {
 impl LinkType {
     pub fn from_pcap(value: u32) -> Self {
         match value {
+            0 => LinkType::Null,
             1 => LinkType::Ethernet,
             101 | 228 | 229 => LinkType::RawIp,
             113 | 276 => LinkType::LinuxSll,
@@ -193,6 +195,17 @@ impl std::error::Error for ParseError {}
 pub fn parse(raw: &RawPacket) -> Result<PacketEvent, ParseError> {
     let sliced = match raw.link {
         LinkType::Ethernet => SlicedPacket::from_ethernet(&raw.data),
+        LinkType::Null => {
+            let ip = raw
+                .data
+                .get(4..)
+                .ok_or(ParseError::Malformed("loopback header"))?;
+            match ip.first() {
+                Some(version) if version >> 4 == 4 || version >> 4 == 6 => {}
+                _ => return Err(ParseError::Malformed("loopback address family")),
+            }
+            SlicedPacket::from_ip(ip)
+        }
         LinkType::RawIp => SlicedPacket::from_ip(&raw.data),
         LinkType::LinuxSll => SlicedPacket::from_linux_sll(&raw.data),
         LinkType::Unsupported(id) => return Err(ParseError::UnsupportedLink(id)),
@@ -457,6 +470,28 @@ mod tests {
         assert_eq!(event.dst_ip, IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)));
     }
 
+    #[test]
+    fn maps_pcap_link_types() {
+        assert_eq!(LinkType::from_pcap(0), LinkType::Null);
+        assert_eq!(LinkType::from_pcap(1), LinkType::Ethernet);
+    }
+    #[test]
+    fn parses_null_loopback_link_type() {
+        let mut frame = Vec::new();
+        PacketBuilder::ethernet2([1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1])
+            .ipv4([127, 0, 0, 1], [127, 0, 0, 2], 64)
+            .udp(51000, 53)
+            .write(&mut frame, &[0; 12])
+            .unwrap();
+
+        let mut loopback = vec![2, 0, 0, 0];
+        loopback.extend_from_slice(&frame[14..]);
+        let raw = RawPacket::new(UNIX_EPOCH, LinkType::Null, loopback, frame.len() as u32);
+        let event = parse(&raw).unwrap();
+
+        assert_eq!(event.protocol, Protocol::Dns);
+        assert_eq!(event.src_ip, IpAddr::V4(Ipv4Addr::LOCALHOST));
+    }
     #[test]
     fn rejects_truncated_frame() {
         let raw = RawPacket::new(UNIX_EPOCH, LinkType::Ethernet, vec![0; 8], 8);

@@ -10,8 +10,8 @@ Proyek ini dibuat untuk mendemonstrasikan pemahaman parsing paket Layer 2–4 da
 
 ## Fitur
 
-- Capture live lewat `pcap` dan replay offline `.pcap` (classic pcap, little/big endian, mikro/nanodetik).
-- Parser aman untuk Ethernet, IPv4, IPv6, TCP flags, UDP, ICMP/ICMPv6, dan nama domain dari DNS query port 53.
+- Capture live lewat `pcap`, termasuk loopback `DLT_NULL` di Windows, dan replay offline `.pcap` (classic pcap, little/big endian, mikro/nanodetik).
+- Parser aman untuk Ethernet, loopback `DLT_NULL`, Raw IP, Linux SLL, IPv4, IPv6, TCP flags, UDP, ICMP/ICMPv6, dan nama domain dari DNS query port 53.
 - Statistik 60 detik: PPS, throughput, sparkline, distribusi protokol, dan top talkers.
 - Mini-IDS: port scan, SYN spike tanpa pasangan ACK, dan DNS query burst.
 - TUI interaktif: filter protokol, pause, tab alert, dan ekspor JSON/CSV.

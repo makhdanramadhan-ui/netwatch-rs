@@ -228,6 +228,9 @@ fn read_u32(bytes: &[u8], endian: Endian) -> u32 {
     }
 }
 
+fn to_i64(value: impl Into<i64>) -> i64 {
+    value.into()
+}
 fn timestamp_from_timeval(seconds: i64, micros: i64) -> SystemTime {
     let seconds = seconds.max(0) as u64;
     let nanos = micros.max(0).saturating_mul(1000) as u32;

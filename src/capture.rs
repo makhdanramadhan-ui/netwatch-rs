@@ -94,10 +94,7 @@ fn capture_live(
             Ok(packet) => {
                 let header = packet.header;
                 let raw = RawPacket::new(
-                    timestamp_from_timeval(
-                        i64::from(header.ts.tv_sec),
-                        i64::from(header.ts.tv_usec),
-                    ),
+                    timestamp_from_timeval(to_i64(header.ts.tv_sec), to_i64(header.ts.tv_usec)),
                     link,
                     packet.data.to_vec(),
                     header.len,
